@@ -20,6 +20,8 @@ func New(input string) *Lexer {
 func (l *Lexer) NextToken() token.Token {
 	var tok token.Token
 
+	l.skipWhitespace()
+
 	switch l.ch {
 	case '=':
 		tok = newToken(token.ASSIGN, l.ch)
@@ -40,6 +42,14 @@ func (l *Lexer) NextToken() token.Token {
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	default:
+		if isValidIdentifierChar(l.ch) {
+			tok.Literal = l.readIdentifier()
+			tok.Type = token.LookupIdent(tok.Literal)
+			return tok
+		} else {
+			tok = newToken(token.ILLEGAL, l.ch)
+		}
 	}
 
 	l.readChar()
@@ -64,4 +74,31 @@ func (l *Lexer) readChar() {
 	// Set current position to position of char we just read and advance the read position of next char
 	l.position = l.readPosition
 	l.readPosition += 1
+}
+
+// Private helper method for reading in an identifier
+func (l *Lexer) readIdentifier() string {
+	position := l.position
+	// Keep reading until we hit a non-identifier char
+	for isValidIdentifierChar(l.ch) {
+		l.readChar()
+	}
+	// Identifier will be slice of input from the beginning position to end position
+	return l.input[position:l.position]
+}
+
+// Private function to determine if given character is allowed in identifiers
+func isValidIdentifierChar(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' ||
+		'A' <= ch && ch <= 'Z' ||
+		'0' <= ch && ch <= '9' ||
+		ch == '_'
+}
+
+// Private function to advance read position to next non-whitespace char
+func (l *Lexer) skipWhitespace() {
+	// If current char is a space, tab, newline, etc. read in next char
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+		l.readChar()
+	}
 }
