@@ -43,7 +43,13 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Literal = ""
 		tok.Type = token.EOF
 	default:
-		if isValidIdentifierChar(l.ch) {
+		// Note: we check numeric first, so that '123' would be read
+		// as a number first, rather than an identifier named '123'
+		if isDigit(l.ch) {
+			tok.Literal = l.readNumber()
+			tok.Type = token.INT
+			return tok
+		} else if isValidIdentifierChar(l.ch) {
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
@@ -93,6 +99,20 @@ func isValidIdentifierChar(ch byte) bool {
 		'A' <= ch && ch <= 'Z' ||
 		'0' <= ch && ch <= '9' ||
 		ch == '_'
+}
+
+// Private function for reading in a numeric
+func (l *Lexer) readNumber() string {
+	position := l.position
+	for isDigit(l.ch) {
+		l.readChar()
+	}
+	return l.input[position:l.position]
+}
+
+// Private function to determine if given character is a numeric
+func isDigit(ch byte) bool {
+	return '0' <= ch && ch <= '9'
 }
 
 // Private function to advance read position to next non-whitespace char
